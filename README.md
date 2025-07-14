@@ -1,4 +1,4 @@
-# Monitoring Stack
+# AURA – Agentic Unified Resource Analytics
 
 Complete Docker-based monitoring infrastructure with Prometheus, Grafana, GPU monitoring, and container metrics.
 
