@@ -22,3 +22,6 @@ Thumbs.db
 # Claude files
 CLAUDE.md
 .claude/
+# Auto-generated metric files
+custom-metrics/container_labels.prom
+custom-metrics/docker_stats.prom
