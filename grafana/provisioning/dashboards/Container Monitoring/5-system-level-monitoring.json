@@ -91,17 +91,17 @@
       "pluginVersion": "8.0.0",
       "targets": [
         {
-          "expr": "node_load1",
+          "expr": "node_load1{instance=\"node_exporter:9100\"}",
           "legendFormat": "1m Load Average",
           "refId": "A"
         },
         {
-          "expr": "node_load5",
+          "expr": "node_load5{instance=\"node_exporter:9100\"}",
           "legendFormat": "5m Load Average",
           "refId": "B"
         },
         {
-          "expr": "node_load15",
+          "expr": "node_load15{instance=\"node_exporter:9100\"}",
           "legendFormat": "15m Load Average",
           "refId": "C"
         }
@@ -163,7 +163,7 @@
       "pluginVersion": "8.0.0",
       "targets": [
         {
-          "expr": "100 - (avg by (instance) (irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+          "expr": "100 - (avg by (instance) (irate(node_cpu_seconds_total{mode=\"idle\",instance=\"node_exporter:9100\"}[5m])) * 100)",
           "legendFormat": "Host CPU Usage %",
           "refId": "A"
         }
@@ -240,22 +240,22 @@
       "pluginVersion": "8.0.0",
       "targets": [
         {
-          "expr": "node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes",
+          "expr": "node_memory_MemTotal_bytes{instance=\"node_exporter:9100\"} - node_memory_MemAvailable_bytes{instance=\"node_exporter:9100\"}",
           "legendFormat": "Used Memory",
           "refId": "A"
         },
         {
-          "expr": "node_memory_Buffers_bytes",
+          "expr": "node_memory_Buffers_bytes{instance=\"node_exporter:9100\"}",
           "legendFormat": "Buffer Memory",
           "refId": "B"
         },
         {
-          "expr": "node_memory_Cached_bytes",
+          "expr": "node_memory_Cached_bytes{instance=\"node_exporter:9100\"}",
           "legendFormat": "Cache Memory",
           "refId": "C"
         },
         {
-          "expr": "node_memory_MemAvailable_bytes",
+          "expr": "node_memory_MemAvailable_bytes{instance=\"node_exporter:9100\"}",
           "legendFormat": "Available Memory",
           "refId": "D"
         }
@@ -317,7 +317,7 @@
       "pluginVersion": "8.0.0",
       "targets": [
         {
-          "expr": "(node_memory_SwapTotal_bytes - node_memory_SwapFree_bytes) / node_memory_SwapTotal_bytes * 100",
+          "expr": "(node_memory_SwapTotal_bytes{instance=\"node_exporter:9100\"} - node_memory_SwapFree_bytes{instance=\"node_exporter:9100\"}) / node_memory_SwapTotal_bytes{instance=\"node_exporter:9100\"} * 100",
           "legendFormat": "Swap Usage %",
           "refId": "A"
         }
@@ -411,22 +411,22 @@
       "pluginVersion": "8.0.0",
       "targets": [
         {
-          "expr": "rate(node_disk_reads_completed_total[5m])",
+          "expr": "rate(node_disk_reads_completed_total{instance=\"node_exporter:9100\"}[5m])",
           "legendFormat": "{{device}} Read IOPS",
           "refId": "A"
         },
         {
-          "expr": "rate(node_disk_writes_completed_total[5m])",
+          "expr": "rate(node_disk_writes_completed_total{instance=\"node_exporter:9100\"}[5m])",
           "legendFormat": "{{device}} Write IOPS",
           "refId": "B"
         },
         {
-          "expr": "rate(node_disk_read_bytes_total[5m]) / 1024 / 1024",
+          "expr": "rate(node_disk_read_bytes_total{instance=\"node_exporter:9100\"}[5m]) / 1024 / 1024",
           "legendFormat": "{{device}} Read MB/s",
           "refId": "C"
         },
         {
-          "expr": "rate(node_disk_written_bytes_total[5m]) / 1024 / 1024",
+          "expr": "rate(node_disk_written_bytes_total{instance=\"node_exporter:9100\"}[5m]) / 1024 / 1024",
           "legendFormat": "{{device}} Write MB/s",
           "refId": "D"
         }
@@ -481,7 +481,7 @@
       "pluginVersion": "8.0.0",
       "targets": [
         {
-          "expr": "100 - (node_filesystem_avail_bytes / node_filesystem_size_bytes * 100)",
+          "expr": "100 - (node_filesystem_avail_bytes{instance=\"node_exporter:9100\"} / node_filesystem_size_bytes{instance=\"node_exporter:9100\"} * 100)",
           "format": "table",
           "instant": true,
           "legendFormat": "",
@@ -580,12 +580,12 @@
       "pluginVersion": "8.0.0",
       "targets": [
         {
-          "expr": "rate(node_network_receive_bytes_total[5m])",
+          "expr": "rate(node_network_receive_bytes_total{instance=\"node_exporter:9100\"}[5m])",
           "legendFormat": "{{device}} RX",
           "refId": "A"
         },
         {
-          "expr": "rate(node_network_transmit_bytes_total[5m])",
+          "expr": "rate(node_network_transmit_bytes_total{instance=\"node_exporter:9100\"}[5m])",
           "legendFormat": "{{device}} TX",
           "refId": "B"
         }
@@ -670,22 +670,22 @@
       "pluginVersion": "8.0.0",
       "targets": [
         {
-          "expr": "rate(node_network_receive_drop_total[5m])",
+          "expr": "rate(node_network_receive_drop_total{instance=\"node_exporter:9100\"}[5m])",
           "legendFormat": "{{device}} RX Drops",
           "refId": "A"
         },
         {
-          "expr": "rate(node_network_transmit_drop_total[5m])",
+          "expr": "rate(node_network_transmit_drop_total{instance=\"node_exporter:9100\"}[5m])",
           "legendFormat": "{{device}} TX Drops",
           "refId": "B"
         },
         {
-          "expr": "rate(node_network_receive_errs_total[5m])",
+          "expr": "rate(node_network_receive_errs_total{instance=\"node_exporter:9100\"}[5m])",
           "legendFormat": "{{device}} RX Errors",
           "refId": "C"
         },
         {
-          "expr": "rate(node_network_transmit_errs_total[5m])",
+          "expr": "rate(node_network_transmit_errs_total{instance=\"node_exporter:9100\"}[5m])",
           "legendFormat": "{{device}} TX Errors",
           "refId": "D"
         }
