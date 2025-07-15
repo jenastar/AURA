@@ -14,6 +14,11 @@ while true; do
         /scripts/docker_stats_metrics.sh
     fi
     
+    # Run GPU container metrics
+    if [ -x /scripts/gpu_container_metrics.sh ]; then
+        /scripts/gpu_container_metrics.sh
+    fi
+    
     # Fix permissions so node exporter can read the files
     chmod 644 /etc/custom-metrics/*.prom 2>/dev/null || true
     

@@ -132,8 +132,8 @@
       "pluginVersion": "8.0.0",
       "targets": [
         {
-          "expr": "DCGM_FI_DEV_GPU_UTIL",
-          "legendFormat": "GPU Utilization",
+          "expr": "avg(docker_container_gpu_usage_percent{project=~\"$project\"}) * 100",
+          "legendFormat": "GPU Active Containers",
           "refId": "A"
         }
       ],

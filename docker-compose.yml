@@ -153,6 +153,9 @@ services:
   custom_metrics_runner:
     build: ./custom-metrics
     container_name: mon_custom_metrics_runner
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - custom_metrics_data:/etc/custom-metrics
