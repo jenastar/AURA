@@ -45,10 +45,12 @@ Complete Docker-based monitoring infrastructure with Prometheus, Grafana, GPU mo
 - **Docker Socket Proxy**: 2376 - Docker API proxy
 
 ### Dashboards
-The stack includes 3 pre-configured dashboards:
+The stack includes 5 pre-configured dashboards:
 1. **System & Infrastructure** - CPU, memory, disk, network, service health
-2. **Container Groups** - Resource usage by project labels
-3. **GPU & Process Performance** - NVIDIA metrics and process monitoring
+2. **Container Groups** - Resource usage organized by project labels
+3. **GPU & Process Performance** - NVIDIA GPU metrics and process monitoring
+4. **Container Level Monitoring** - Detailed per-container resource metrics
+5. **System Level Monitoring** - Host system performance and health
 
 ### Container Groups
 Label your containers with `project=<groupname>` to automatically include them in monitoring and group dashboards.
