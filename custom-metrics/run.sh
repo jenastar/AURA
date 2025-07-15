@@ -22,6 +22,6 @@ while true; do
     # Fix permissions so node exporter can read the files
     chmod 644 /etc/custom-metrics/*.prom 2>/dev/null || true
     
-    # Sleep for 15 seconds before next collection
-    sleep 15
+    # Sleep for 5 seconds before next collection
+    sleep 5
 done
