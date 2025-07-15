@@ -10,7 +10,7 @@ services:
     labels:
       - "project=webapp"
     networks:
-      - benchmarking_mon_network
+      - aura_mon_network
     restart: unless-stopped
 
   webapp-api:
@@ -21,7 +21,7 @@ services:
     labels:
       - "project=webapp"
     networks:
-      - benchmarking_mon_network
+      - aura_mon_network
     restart: unless-stopped
 
   # Test containers for "database" project group
@@ -33,7 +33,7 @@ services:
     labels:
       - "project=database"
     networks:
-      - benchmarking_mon_network
+      - aura_mon_network
     restart: unless-stopped
 
   db-cache:
@@ -44,7 +44,7 @@ services:
     labels:
       - "project=database"
     networks:
-      - benchmarking_mon_network
+      - aura_mon_network
     restart: unless-stopped
 
   # Test container for "ml" project group  
@@ -54,10 +54,10 @@ services:
     labels:
       - "project=ml"
     networks:
-      - benchmarking_mon_network
+      - aura_mon_network
     restart: unless-stopped
     command: sh -c "while true; do echo 'ML processing...'; sleep 30; done"
 
 networks:
-  benchmarking_mon_network:
+  aura_mon_network:
     external: true
