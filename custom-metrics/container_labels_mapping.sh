@@ -3,7 +3,7 @@
 # Generate container label mapping metrics for Prometheus
 # This creates a bridge between cAdvisor container IDs and Docker container labels
 
-METRICS_FILE="/mnt/c/Users/jenas/dev/benchMarking/custom-metrics/container_labels.prom"
+METRICS_FILE="/etc/custom-metrics/container_labels.prom"
 
 # Create temp file for atomic write
 TEMP_FILE=$(mktemp)

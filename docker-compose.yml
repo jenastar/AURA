@@ -136,12 +136,26 @@ services:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /:/rootfs:ro
-      - ./custom-metrics:/etc/custom-metrics
+      - custom_metrics_data:/etc/custom-metrics
     command:
       - '--path.procfs=/host/proc'
       - '--path.rootfs=/rootfs'
       - '--path.sysfs=/host/sys'
       - '--collector.textfile.directory=/etc/custom-metrics'
+    networks:
+      - mon_network
+    labels:
+      - "project=mon"
+    restart: unless-stopped
+    depends_on:
+      - custom_metrics_runner
+
+  custom_metrics_runner:
+    build: ./custom-metrics
+    container_name: mon_custom_metrics_runner
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - custom_metrics_data:/etc/custom-metrics
     networks:
       - mon_network
     labels:
@@ -160,5 +174,8 @@ volumes:
     labels:
       - "project=mon"
   grafana_data:
+    labels:
+      - "project=mon"
+  custom_metrics_data:
     labels:
       - "project=mon"

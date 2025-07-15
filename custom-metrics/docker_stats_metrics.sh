@@ -3,7 +3,7 @@
 # Generate Docker container stats metrics with project labels for Prometheus
 # This replaces cAdvisor functionality for individual container metrics
 
-METRICS_FILE="/mnt/c/Users/jenas/dev/benchMarking/custom-metrics/docker_stats.prom"
+METRICS_FILE="/etc/custom-metrics/docker_stats.prom"
 TEMP_FILE=$(mktemp)
 
 cat > "$TEMP_FILE" << 'EOF'
@@ -73,29 +73,42 @@ docker ps -a --format "json" | while IFS= read -r line; do
                     # Extract block I/O (keep original format with units)
                     block_input_raw=$(echo "$stats" | grep -o '"BlockIO":"[^"]*"' | cut -d'"' -f4 | cut -d'/' -f1 | xargs)
                     block_output_raw=$(echo "$stats" | grep -o '"BlockIO":"[^"]*"' | cut -d'"' -f4 | cut -d'/' -f2 | xargs)
-                
-                # Function to convert human readable to bytes
-                convert_to_bytes() {
-                    local value="$1"
-                    echo "$value" | awk '{
-                        # Remove any trailing spaces and extract number and unit
-                        gsub(/^[ \t]+|[ \t]+$/, ""); # trim
+                    
+                    # Function to convert human readable to bytes
+                    convert_to_bytes() {
+                        local value="$1"
+                        # Extract number and unit using sed
+                        local num=$(echo "$value" | sed 's/[^0-9.]//g')
+                        local unit=$(echo "$value" | sed 's/[0-9.]//g' | tr '[:upper:]' '[:lower:]')
                         
-                        if (match($0, /^([0-9.]+)([A-Za-z]*)/, arr)) {
-                            num = arr[1]
-                            unit = tolower(arr[2])
-                            
-                            if (unit == "" || unit == "b") print int(num)
-                            else if (unit == "kb" || unit == "k") print int(num * 1024)
-                            else if (unit == "mb" || unit == "m" || unit == "mib") print int(num * 1024 * 1024)
-                            else if (unit == "gb" || unit == "g" || unit == "gib") print int(num * 1024 * 1024 * 1024)
-                            else if (unit == "tb" || unit == "t" || unit == "tib") print int(num * 1024 * 1024 * 1024 * 1024)
-                            else print int(num)
-                        } else {
-                            print 0
-                        }
-                    }'
-                }
+                        # Default to 0 if no number found
+                        if [ -z "$num" ]; then
+                            echo "0"
+                            return
+                        fi
+                        
+                        # Convert based on unit
+                        case "$unit" in
+                            b|"")
+                                echo "${num%.*}"
+                                ;;
+                            kb|k)
+                                echo "$(echo "$num * 1024" | bc | cut -d. -f1)"
+                                ;;
+                            mb|m|mib)
+                                echo "$(echo "$num * 1024 * 1024" | bc | cut -d. -f1)"
+                                ;;
+                            gb|g|gib)
+                                echo "$(echo "$num * 1024 * 1024 * 1024" | bc | cut -d. -f1)"
+                                ;;
+                            tb|t|tib)
+                                echo "$(echo "$num * 1024 * 1024 * 1024 * 1024" | bc | cut -d. -f1)"
+                                ;;
+                            *)
+                                echo "${num%.*}"
+                                ;;
+                        esac
+                    }
                 
                     mem_usage_bytes=$(convert_to_bytes "$mem_usage_raw")
                     mem_limit_bytes=$(convert_to_bytes "$mem_limit_raw")
