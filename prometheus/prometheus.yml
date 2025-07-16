@@ -49,6 +49,20 @@ scrape_configs:
           component: 'gpu-inference'
           method: 'memory-delta'
 
+  - job_name: 'llm-metrics'
+    static_configs:
+      - targets: ['llm_metrics_exporter:9202']
+        labels:
+          component: 'llm-metrics'
+          llm_type: 'ollama'
+
+  - job_name: 'llm-wrapper'
+    static_configs:
+      - targets: ['llm_inference_wrapper:9203']
+        labels:
+          component: 'llm-wrapper'
+          llm_type: 'ollama'
+
   - job_name: 'blackbox-http'
     metrics_path: /probe
     params:

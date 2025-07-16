@@ -207,6 +207,46 @@ services:
     pid: host
     restart: unless-stopped
 
+  llm_metrics_exporter:
+    build:
+      context: ./llm-metrics-exporter
+      dockerfile: Dockerfile
+    container_name: mon_llm_metrics_exporter
+    environment:
+      - LLM_TYPE=ollama
+      - OLLAMA_HOST=ollama
+      - OLLAMA_PORT=11434
+      - EXPORTER_PORT=9202
+      - SCRAPE_INTERVAL=10
+    ports:
+      - "9202:9202"
+    networks:
+      - mon_network
+    labels:
+      - "project=mon"
+    restart: unless-stopped
+
+  llm_inference_wrapper:
+    build:
+      context: ./llm-metrics-exporter
+      dockerfile: Dockerfile
+    container_name: mon_llm_inference_wrapper
+    command: ["python", "/app/ollama_inference_wrapper.py"]
+    environment:
+      - OLLAMA_HOST=ollama
+      - OLLAMA_PORT=11434
+      - PROXY_PORT=11435
+      - METRICS_PORT=9203
+      - CONTAINER_NAME=ollama-wrapper
+    ports:
+      - "11435:11435"
+      - "9203:9203"
+    networks:
+      - mon_network
+    labels:
+      - "project=mon"
+    restart: unless-stopped
+
 
 networks:
   mon_network:
