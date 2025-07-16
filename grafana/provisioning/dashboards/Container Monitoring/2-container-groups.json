@@ -268,7 +268,7 @@
             "mode": "thresholds"
           },
           "mappings": [],
-          "max": 1,
+          "max": 1073741824,
           "min": 0,
           "thresholds": {
             "mode": "absolute",
@@ -279,15 +279,15 @@
               },
               {
                 "color": "yellow",
-                "value": 0.5
+                "value": 104857600
               },
               {
                 "color": "red",
-                "value": 0.8
+                "value": 524288000
               }
             ]
           },
-          "unit": "Bps"
+          "unit": "binBps"
         },
         "overrides": []
       },
@@ -329,7 +329,7 @@
             "mode": "thresholds"
           },
           "mappings": [],
-          "max": 1,
+          "max": 1073741824,
           "min": 0,
           "thresholds": {
             "mode": "absolute",
@@ -340,15 +340,15 @@
               },
               {
                 "color": "yellow",
-                "value": 0.5
+                "value": 104857600
               },
               {
                 "color": "red",
-                "value": 0.8
+                "value": 524288000
               }
             ]
           },
-          "unit": "Bps"
+          "unit": "binBps"
         },
         "overrides": []
       },
