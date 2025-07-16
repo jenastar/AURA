@@ -14,6 +14,7 @@ COPY vector_db_metrics_exporter.py /app/
 COPY chromadb_wrapper.py /app/
 COPY pinecone_wrapper.py /app/
 COPY faiss_wrapper.py /app/
+COPY chromadb_metrics_collector.py /app/
 
 # Copy example files
 COPY example*.py /app/

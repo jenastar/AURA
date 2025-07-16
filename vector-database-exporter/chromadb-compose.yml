@@ -10,7 +10,7 @@ services:
     volumes:
       - chromadb_data:/chroma/chroma
     networks:
-      - mon_network
+      - vector_test_network
     environment:
       - IS_PERSISTENT=TRUE
       - PERSIST_DIRECTORY=/chroma/chroma
@@ -21,8 +21,10 @@ services:
       - "db_type=chromadb"
 
 networks:
-  mon_network:
-    external: true
+  vector_test_network:
+    driver: bridge
+    labels:
+      - "project=vector-db-test"
 
 volumes:
   chromadb_data:

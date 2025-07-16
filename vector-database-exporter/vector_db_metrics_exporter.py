@@ -629,20 +629,32 @@ def main():
                 tracker.end_operation(op_id, success=True)
     else:
         print("Production mode - connect to actual vector databases")
-        # Here you would initialize actual database collectors
-        # collectors = []
-        # 
-        # if 'CHROMADB_HOST' in os.environ:
-        #     import chromadb
-        #     client = chromadb.HttpClient(host=os.environ['CHROMADB_HOST'])
-        #     collectors.append(ChromaDBMetricsCollector(client))
-        # 
-        # while True:
-        #     for collector in collectors:
-        #         collector.collect_metrics()
-        #     time.sleep(scrape_interval)
+        # Initialize actual database collectors
+        collectors = []
+        
+        if 'CHROMADB_HOST' in os.environ:
+            try:
+                from chromadb_metrics_collector import ChromaDBMetricsCollector
+                import chromadb
+                host = os.environ.get('CHROMADB_HOST', 'localhost')
+                port_num = int(os.environ.get('CHROMADB_PORT', '8000'))
+                print(f"Connecting to ChromaDB at {host}:{port_num}")
+                client = chromadb.HttpClient(host=host, port=port_num)
+                collector = ChromaDBMetricsCollector(client)
+                collectors.append(collector)
+                print("ChromaDB collector initialized")
+            except Exception as e:
+                print(f"Failed to initialize ChromaDB collector: {e}")
+        
+        if not collectors:
+            print("No collectors initialized, running in passive mode")
         
         while True:
+            for collector in collectors:
+                try:
+                    collector.collect_metrics()
+                except Exception as e:
+                    print(f"Error collecting metrics: {e}")
             time.sleep(scrape_interval)
 
 

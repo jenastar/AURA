@@ -253,12 +253,13 @@ services:
       dockerfile: Dockerfile
     container_name: mon_vector_db_exporter
     environment:
-      - DEMO_MODE=${DEMO_MODE:-true}
+      - DEMO_MODE=false
       - EXPORTER_PORT=9205
       - SCRAPE_INTERVAL=15
       - CONTAINER_NAME=vector-db-exporter
       - CHROMADB_HOST=${CHROMADB_HOST:-chromadb}
       - CHROMADB_PORT=${CHROMADB_PORT:-8000}
+      - PROJECT_LABEL=mon
     ports:
       - "9205:9205"
     networks:
