@@ -204,6 +204,67 @@
       "fieldConfig": {
         "defaults": {
           "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 30
+              },
+              {
+                "color": "red",
+                "value": 60
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 4,
+        "x": 12,
+        "y": 0
+      },
+      "id": 15,
+      "options": {
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "pluginVersion": "8.0.0",
+      "targets": [
+        {
+          "expr": "(sum(gpu_memory_unknown_bytes) / sum(gpu_memory_total_bytes)) * 100",
+          "legendFormat": "Inferred GPU Usage",
+          "refId": "A"
+        }
+      ],
+      "title": "Inferred GPU Utilization %",
+      "type": "gauge"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
             "mode": "palette-classic"
           },
           "custom": {
@@ -250,9 +311,9 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 0
+        "w": 8,
+        "x": 0,
+        "y": 8
       },
       "id": 1,
       "options": {
@@ -327,8 +388,8 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
-        "x": 0,
+        "w": 8,
+        "x": 8,
         "y": 8
       },
       "id": 2,
@@ -410,8 +471,8 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 12,
-        "y": 8
+        "x": 0,
+        "y": 16
       },
       "id": 3,
       "options": {
@@ -475,8 +536,8 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 0,
-        "y": 16
+        "x": 12,
+        "y": 24
       },
       "id": 5,
       "options": {
@@ -551,8 +612,8 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 12,
-        "y": 16
+        "x": 0,
+        "y": 24
       },
       "id": 6,
       "options": {
@@ -645,8 +706,8 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 0,
-        "y": 24
+        "x": 12,
+        "y": 16
       },
       "id": 13,
       "options": {
@@ -710,8 +771,8 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 12,
-        "y": 24
+        "x": 0,
+        "y": 32
       },
       "id": 14,
       "options": {
@@ -749,6 +810,88 @@
         }
       ],
       "type": "table"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 8
+      },
+      "id": 16,
+      "options": {
+        "legend": {
+          "calcs": ["mean", "lastNotNull"],
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "pluginVersion": "8.0.0",
+      "targets": [
+        {
+          "expr": "gpu_memory_unknown_bytes",
+          "legendFormat": "GPU {{gpu}} - Inferred Usage",
+          "refId": "A"
+        },
+        {
+          "expr": "container_gpu_memory_bytes{method=\"inference\"}",
+          "legendFormat": "{{container_name}} - Inferred",
+          "refId": "B"
+        }
+      ],
+      "title": "Inferred GPU Memory Usage by Group",
+      "type": "timeseries"
     }
   ],
   "refresh": "5s",
