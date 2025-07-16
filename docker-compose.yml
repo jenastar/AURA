@@ -257,7 +257,7 @@ services:
       - EXPORTER_PORT=9205
       - SCRAPE_INTERVAL=15
       - CONTAINER_NAME=vector-db-exporter
-      - CHROMADB_HOST=172.18.0.18
+      - CHROMADB_HOST=chromadb
       - CHROMADB_PORT=${CHROMADB_PORT:-8000}
       - PROJECT_LABEL=mon
     ports:
