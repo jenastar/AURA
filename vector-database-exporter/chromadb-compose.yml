@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  # ChromaDB instance for real-world examples
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: chromadb
+    ports:
+      - "8000:8000"
+    volumes:
+      - chromadb_data:/chroma/chroma
+    networks:
+      - mon_network
+    environment:
+      - IS_PERSISTENT=TRUE
+      - PERSIST_DIRECTORY=/chroma/chroma
+      - ANONYMIZED_TELEMETRY=FALSE
+    labels:
+      - "project=vector-db"
+      - "component=database"
+      - "db_type=chromadb"
+
+networks:
+  mon_network:
+    external: true
+    labels:
+      - "project=vector-db"
+
+volumes:
+  chromadb_data:
+    labels:
+      - "project=vector-db"
