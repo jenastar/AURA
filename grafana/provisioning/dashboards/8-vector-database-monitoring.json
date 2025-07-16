@@ -1030,7 +1030,36 @@
     "ai"
   ],
   "templating": {
-    "list": []
+    "list": [
+      {
+        "allValue": ".*",
+        "current": {
+          "selected": false,
+          "text": "mon",
+          "value": "mon"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "PBFA97CFB590B2093"
+        },
+        "definition": "label_values(vector_db_embeddings_generated_total, project)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Project",
+        "multi": false,
+        "name": "project",
+        "options": [],
+        "query": {
+          "query": "label_values(vector_db_embeddings_generated_total, project)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      }
+    ]
   },
   "time": {
     "from": "now-1h",

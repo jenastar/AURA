@@ -67,13 +67,13 @@ vector_insertion_time = Histogram(
 collection_size = Gauge(
     'vector_db_collection_size',
     'Number of vectors in collection',
-    ['database', 'collection']
+    ['project', 'database', 'collection']
 )
 
 collection_dimension = Gauge(
     'vector_db_collection_dimension',
     'Dimension of vectors in collection',
-    ['database', 'collection']
+    ['project', 'database', 'collection']
 )
 
 index_memory_usage_bytes = Gauge(
@@ -235,11 +235,13 @@ class VectorDatabaseMetricsTracker:
     def update_collection_stats(self, collection: str, size: int, dimension: int):
         """Update collection size and dimension metrics"""
         collection_size.labels(
+            project=self.project_label,
             database=self.database_name,
             collection=collection
         ).set(size)
         
         collection_dimension.labels(
+            project=self.project_label,
             database=self.database_name,
             collection=collection
         ).set(dimension)
@@ -639,7 +641,9 @@ def main():
                 port_num = int(os.environ.get('CHROMADB_PORT', '8000'))
                 print(f"Connecting to ChromaDB at {host}:{port_num}")
                 client = chromadb.HttpClient(host=host, port=port_num)
+                project_label = os.environ.get('PROJECT_LABEL', 'mon')
                 collector = ChromaDBMetricsCollector(client)
+                collector.project_label = project_label
                 collectors.append(collector)
                 print("ChromaDB collector initialized")
             except Exception as e:

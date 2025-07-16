@@ -5,15 +5,14 @@ WORKDIR /app
 # Install dependencies for test application
 RUN pip install --no-cache-dir \
     chromadb==0.4.15 \
-    sentence-transformers==2.2.2 \
-    requests==2.31.0 \
     numpy==1.24.3
 
 # Copy test application
+COPY test_vector_operations.py /app/
 COPY test_rag_application.py /app/
 COPY chromadb_wrapper.py /app/
 
 # Create documents directory
 RUN mkdir -p /app/documents
 
-CMD ["python", "/app/test_rag_application.py"]
+CMD ["python", "/app/test_vector_operations.py"]
