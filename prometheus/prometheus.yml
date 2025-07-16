@@ -63,6 +63,13 @@ scrape_configs:
           component: 'llm-wrapper'
           llm_type: 'ollama'
 
+  - job_name: 'vector-database'
+    static_configs:
+      - targets: ['vector_db_exporter:9205']
+        labels:
+          component: 'vector-db'
+          db_type: 'multi'
+
   - job_name: 'blackbox-http'
     metrics_path: /probe
     params:

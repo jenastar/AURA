@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  # ChromaDB instance for testing
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: test_chromadb
+    ports:
+      - "8000:8000"
+    volumes:
+      - chromadb_data:/chroma/chroma
+    networks:
+      - test_vector_network
+    environment:
+      - IS_PERSISTENT=TRUE
+      - PERSIST_DIRECTORY=/chroma/chroma
+      - ANONYMIZED_TELEMETRY=FALSE
+    labels:
+      - "project=vector-db-test"
+
+  # Vector DB exporter configured for real ChromaDB
+  vector_db_exporter_real:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: test_vector_db_exporter
+    environment:
+      - DEMO_MODE=false
+      - EXPORTER_PORT=9205
+      - SCRAPE_INTERVAL=10
+      - CHROMADB_HOST=chromadb
+      - CHROMADB_PORT=8000
+    ports:
+      - "9206:9205"
+    networks:
+      - test_vector_network
+    depends_on:
+      - chromadb
+    volumes:
+      - ./chromadb_metrics_collector.py:/app/chromadb_metrics_collector.py
+    labels:
+      - "project=vector-db-test"
+
+  # Test application that uses ChromaDB
+  vector_test_app:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: test_vector_app
+    environment:
+      - CHROMADB_HOST=chromadb
+      - CHROMADB_PORT=8000
+      - VECTOR_EXPORTER_HOST=vector_db_exporter_real
+      - VECTOR_EXPORTER_PORT=9205
+    networks:
+      - test_vector_network
+    depends_on:
+      - chromadb
+      - vector_db_exporter_real
+    volumes:
+      - ./test_rag_application.py:/app/test_rag_application.py
+      - ./documents:/app/documents
+    labels:
+      - "project=vector-db-test"
+
+networks:
+  test_vector_network:
+    driver: bridge
+    labels:
+      - "project=vector-db-test"
+
+volumes:
+  chromadb_data:
+    labels:
+      - "project=vector-db-test"

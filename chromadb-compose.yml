@@ -1,0 +1,42 @@
+# ChromaDB service to use with the main monitoring stack
+# 
+# To use ChromaDB with real metrics instead of demo mode:
+# 1. Start this ChromaDB service:
+#    docker compose -f chromadb-compose.yml up -d
+#
+# 2. Start the main stack with ChromaDB environment:
+#    DEMO_MODE=false CHROMADB_HOST=chromadb docker compose up -d
+#
+# Or create a .env file with:
+#    DEMO_MODE=false
+#    CHROMADB_HOST=chromadb
+
+version: '3.8'
+
+services:
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: mon_chromadb
+    ports:
+      - "8000:8000"
+    volumes:
+      - chromadb_data:/chroma/chroma
+    networks:
+      - mon_network
+    environment:
+      - IS_PERSISTENT=TRUE
+      - PERSIST_DIRECTORY=/chroma/chroma
+      - ANONYMIZED_TELEMETRY=FALSE
+    labels:
+      - "project=mon"
+    restart: unless-stopped
+
+networks:
+  mon_network:
+    external: true
+    name: aura_mon_network
+
+volumes:
+  chromadb_data:
+    labels:
+      - "project=mon"
