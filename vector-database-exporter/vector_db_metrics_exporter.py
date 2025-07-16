@@ -634,7 +634,6 @@ def main():
         
         if 'CHROMADB_HOST' in os.environ:
             try:
-                from chromadb_metrics_collector import ChromaDBMetricsCollector
                 import chromadb
                 host = os.environ.get('CHROMADB_HOST', 'localhost')
                 port_num = int(os.environ.get('CHROMADB_PORT', '8000'))
@@ -645,6 +644,8 @@ def main():
                 print("ChromaDB collector initialized")
             except Exception as e:
                 print(f"Failed to initialize ChromaDB collector: {e}")
+                import traceback
+                traceback.print_exc()
         
         if not collectors:
             print("No collectors initialized, running in passive mode")

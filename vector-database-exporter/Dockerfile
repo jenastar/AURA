@@ -7,7 +7,8 @@ RUN pip install --no-cache-dir \
     prometheus-client==0.19.0 \
     requests==2.31.0 \
     numpy==1.24.3 \
-    psutil==5.9.6
+    psutil==5.9.6 \
+    chromadb==0.4.15
 
 # Copy application files
 COPY vector_db_metrics_exporter.py /app/

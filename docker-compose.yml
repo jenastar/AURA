@@ -257,11 +257,30 @@ services:
       - EXPORTER_PORT=9205
       - SCRAPE_INTERVAL=15
       - CONTAINER_NAME=vector-db-exporter
-      - CHROMADB_HOST=${CHROMADB_HOST:-chromadb}
+      - CHROMADB_HOST=172.18.0.18
       - CHROMADB_PORT=${CHROMADB_PORT:-8000}
       - PROJECT_LABEL=mon
     ports:
       - "9205:9205"
+    networks:
+      - mon_network
+    labels:
+      - "project=mon"
+    restart: unless-stopped
+    depends_on:
+      - chromadb
+
+  chromadb:
+    image: chromadb/chroma:0.4.15
+    container_name: mon_chromadb
+    ports:
+      - "8000:8000"
+    environment:
+      - IS_PERSISTENT=TRUE
+      - PERSIST_DIRECTORY=/chroma/chroma
+      - ANONYMIZED_TELEMETRY=FALSE
+    volumes:
+      - chromadb_data:/chroma/chroma
     networks:
       - mon_network
     labels:
@@ -283,5 +302,8 @@ volumes:
     labels:
       - "project=mon"
   custom_metrics_data:
+    labels:
+      - "project=mon"
+  chromadb_data:
     labels:
       - "project=mon"
