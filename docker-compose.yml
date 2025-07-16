@@ -165,6 +165,25 @@ services:
       - "project=mon"
     restart: unless-stopped
 
+  ollama_exporter:
+    build:
+      context: ./ollama-exporter
+      dockerfile: Dockerfile
+    container_name: mon_ollama_exporter
+    environment:
+      - OLLAMA_HOST=${OLLAMA_HOST:-ollama}
+      - OLLAMA_PORT=${OLLAMA_PORT:-11434}
+      - EXPORTER_PORT=9200
+      - SCRAPE_INTERVAL=15
+      - INFERENCE_CHECK_INTERVAL=2
+    ports:
+      - "9200:9200"
+    networks:
+      - mon_network
+    labels:
+      - "project=mon"
+    restart: unless-stopped
+
 
 networks:
   mon_network:
