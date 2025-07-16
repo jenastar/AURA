@@ -16,17 +16,15 @@ services:
       - PERSIST_DIRECTORY=/chroma/chroma
       - ANONYMIZED_TELEMETRY=FALSE
     labels:
-      - "project=vector-db"
+      - "project=vector-db-test"
       - "component=database"
       - "db_type=chromadb"
 
 networks:
   mon_network:
     external: true
-    labels:
-      - "project=vector-db"
 
 volumes:
   chromadb_data:
     labels:
-      - "project=vector-db"
+      - "project=vector-db-test"

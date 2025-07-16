@@ -8,25 +8,22 @@ All components of the vector database monitoring feature have been properly labe
 ### 1. **Main Monitoring Stack** (`project=mon`)
 Located in `/mnt/c/dev/aura/docker-compose.yml`:
 - `vector_db_exporter` service - labeled with `project=mon`
+- This is the production exporter that monitors vector databases
 - Integrates with the main monitoring network
 - Accessible at port 9205
 
-### 2. **Test Environment** (`project=vector-db-test`)
-Located in `/mnt/c/dev/aura/vector-database-exporter/docker-compose.test.yml`:
-- All services labeled with `project=vector-db-test`:
-  - `chromadb` - Test ChromaDB instance
-  - `vector_db_exporter_real` - Exporter configured for real ChromaDB
-  - `vector_test_app` - Test application generating real metrics
-- Separate test network labeled accordingly
-- Test volumes labeled for easy cleanup
+### 2. **Test/Example Environment** (`project=vector-db-test`)
+All test and example configurations use the same label for consistency:
 
-### 3. **Standalone ChromaDB** (`project=vector-db`)
-Located in `/mnt/c/dev/aura/vector-database-exporter/chromadb-compose.yml`:
-- ChromaDB service for real-world examples
-- Uses external `mon_network` for integration
-- Additional labels:
-  - `component=database`
-  - `db_type=chromadb`
+**Test Setup** - Located in `/mnt/c/dev/aura/vector-database-exporter/docker-compose.test.yml`:
+- `chromadb` - Test ChromaDB instance
+- `vector_db_exporter_real` - Exporter configured for real ChromaDB
+- `vector_test_app` - Test application generating real metrics
+
+**Example ChromaDB** - Located in `/mnt/c/dev/aura/vector-database-exporter/chromadb-compose.yml`:
+- Standalone ChromaDB for running real-world examples
+- Uses external `mon_network` for integration with main stack
+- Additional labels: `component=database`, `db_type=chromadb`
 
 ## Label Benefits
 
@@ -48,22 +45,27 @@ Located in `/mnt/c/dev/aura/vector-database-exporter/chromadb-compose.yml`:
 
 Check all labeled containers:
 ```bash
-# Main monitoring stack
+# Main monitoring stack (production)
 docker ps --filter "label=project=mon" --format "table {{.Names}}\t{{.Labels}}"
 
-# Test environment
+# All test/example environments
 docker ps --filter "label=project=vector-db-test" --format "table {{.Names}}\t{{.Labels}}"
-
-# Standalone ChromaDB
-docker ps --filter "label=project=vector-db" --format "table {{.Names}}\t{{.Labels}}"
 ```
 
 ## Dashboard Integration
 
 The Container Groups dashboard (ID: 2) automatically groups containers by project label:
-- Containers with `project=mon` appear under "Monitoring Infrastructure"
-- Test containers with `project=vector-db-test` appear separately
+- Containers with `project=mon` appear under "Monitoring Infrastructure" (production)
+- All test/example containers with `project=vector-db-test` appear together
 - Enables project-based resource tracking and alerting
+
+## Label Philosophy
+
+We use only two project labels for vector database monitoring:
+1. `project=mon` - For production monitoring components that are part of the main stack
+2. `project=vector-db-test` - For ALL test and example environments
+
+This keeps things simple and avoids confusion between different test setups.
 
 ## Best Practices
 
