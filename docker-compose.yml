@@ -184,6 +184,29 @@ services:
       - "project=mon"
     restart: unless-stopped
 
+  gpu_inference_exporter:
+    build:
+      context: ./gpu-inference-exporter
+      dockerfile: Dockerfile
+    container_name: mon_gpu_inference_exporter
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - EXPORTER_PORT=9201
+      - SCRAPE_INTERVAL=10
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /proc:/host/proc:ro
+    ports:
+      - "9201:9201"
+    networks:
+      - mon_network
+    labels:
+      - "project=mon"
+    privileged: true
+    pid: host
+    restart: unless-stopped
+
 
 networks:
   mon_network:

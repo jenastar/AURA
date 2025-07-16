@@ -42,6 +42,13 @@ scrape_configs:
           component: 'ollama'
           gpu_workload: 'llm'
 
+  - job_name: 'gpu-inference'
+    static_configs:
+      - targets: ['gpu_inference_exporter:9201']
+        labels:
+          component: 'gpu-inference'
+          method: 'memory-delta'
+
   - job_name: 'blackbox-http'
     metrics_path: /probe
     params:
