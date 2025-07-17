@@ -20,8 +20,14 @@ ehthumbs.db
 Thumbs.db
 
 # Claude files
-CLAUDE.md
 .claude/
 # Auto-generated metric files
 custom-metrics/container_labels.prom
 custom-metrics/docker_stats.prom
+
+# Markdown files
+*.md
+!README.md
+# But still ignore README.md in subdirectories
+**/README.md
+!./README.md

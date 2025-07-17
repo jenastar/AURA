@@ -188,6 +188,26 @@ services:
     pid: host
     restart: unless-stopped
 
+  vector_db_exporter:
+    build:
+      context: ./vector-database-exporter
+      dockerfile: Dockerfile
+    container_name: mon_vector_db_exporter
+    environment:
+      - EXPORTER_PORT=9205
+      - SCRAPE_INTERVAL=15
+      - CONTAINER_NAME=vector-db-exporter
+      - CHROMADB_HOST=host.docker.internal
+      - CHROMADB_PORT=8000
+      - PROJECT_LABEL=mon
+    ports:
+      - "9205:9205"
+    networks:
+      - mon_network
+    labels:
+      - "project=mon"
+    restart: unless-stopped
+
 
 networks:
   mon_network:

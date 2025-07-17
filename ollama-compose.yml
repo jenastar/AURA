@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  # Example Ollama service (if not already running)
+  # Uncomment if you need to run Ollama as part of this stack
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   container_name: ollama
+  #   runtime: nvidia
+  #   environment:
+  #     - NVIDIA_VISIBLE_DEVICES=all
+  #   volumes:
+  #     - ollama_data:/root/.ollama
+  #   ports:
+  #     - "11434:11434"
+  #   networks:
+  #     - mon_network
+  #   labels:
+  #     - "project=ollama"
+  #   restart: unless-stopped
+
+  ollama_exporter:
+    build:
+      context: ./ollama-exporter
+      dockerfile: Dockerfile
+    container_name: mon_ollama_exporter
+    environment:
+      - OLLAMA_HOST=${OLLAMA_HOST:-ollama}
+      - OLLAMA_PORT=${OLLAMA_PORT:-11434}
+      - EXPORTER_PORT=9200
+      - SCRAPE_INTERVAL=15
+      - INFERENCE_CHECK_INTERVAL=2
+    ports:
+      - "9200:9200"
+    networks:
+      - mon_network
+    labels:
+      - "project=mon"
+    restart: unless-stopped
+    # Uncomment if Ollama is part of this compose file
+    # depends_on:
+    #   - ollama
+
+  # Add to existing Prometheus scrape configs
+  # In prometheus.yml, add:
+  # - job_name: 'ollama'
+  #   static_configs:
+  #     - targets: ['ollama_exporter:9200']
+  #       labels:
+  #         component: 'ollama'
+
+networks:
+  mon_network:
+    external: true
+
+volumes:
+  ollama_data:

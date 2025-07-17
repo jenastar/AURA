@@ -42,6 +42,13 @@ scrape_configs:
           component: 'gpu-inference'
           method: 'memory-delta'
 
+  - job_name: 'vector-database'
+    static_configs:
+      - targets: ['vector_db_exporter:9205']
+        labels:
+          component: 'vector-db'
+          db_type: 'multi'
+          project: 'mon'
   - job_name: 'blackbox-http'
     metrics_path: /probe
     params:
