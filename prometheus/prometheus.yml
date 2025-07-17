@@ -35,13 +35,6 @@ scrape_configs:
     static_configs:
       - targets: ['blackbox_exporter:9115']
 
-  - job_name: 'ollama'
-    static_configs:
-      - targets: ['ollama_exporter:9200']
-        labels:
-          component: 'ollama'
-          gpu_workload: 'llm'
-
   - job_name: 'gpu-inference'
     static_configs:
       - targets: ['gpu_inference_exporter:9201']
@@ -73,4 +66,3 @@ scrape_configs:
         target_label: instance
       - target_label: __address__
         replacement: blackbox_exporter:9115
-

@@ -55,6 +55,94 @@ The stack includes 5 pre-configured dashboards:
 ### Container Groups
 Label your containers with `project=<groupname>` to automatically include them in monitoring and group dashboards.
 
+## Integrating External Stacks
+
+To add monitoring for external Docker stacks, you need to create custom exporters in AURA and configure the target stack properly.
+
+### Target Stack Requirements
+
+**1. Docker Labels** - Add to services you want to monitor:
+```yaml
+labels:
+  - "project=your-project-name"
+  - "component=service-type"     # database, api, worker, etc.
+  - "service=specific-service"   # chromadb, redis, postgres, etc.
+```
+
+**2. Network Configuration** - Use default bridge network (remove explicit networks) OR join `aura_mon_network`
+
+### AURA Monitoring Components
+
+**1. Custom Exporter** - Create `/exporters/your-stack-exporter/`:
+```dockerfile
+# Dockerfile
+FROM python:3.10-slim
+RUN pip install prometheus-client requests
+WORKDIR /app
+COPY exporter.py .
+CMD ["python", "exporter.py"]
+```
+
+```python
+# exporter.py - Basic template
+from prometheus_client import start_http_server, Gauge
+import requests
+import time
+import os
+
+port = int(os.environ.get('EXPORTER_PORT', '9XXX'))
+target_host = os.environ.get('TARGET_HOST', 'host.docker.internal')
+
+# Define your metrics
+service_up = Gauge('service_up', 'Service status', ['service'])
+
+def check_service():
+    try:
+        response = requests.get(f"http://{target_host}:PORT/health", timeout=5)
+        service_up.labels(service='your-service').set(1 if response.status_code == 200 else 0)
+    except:
+        service_up.labels(service='your-service').set(0)
+
+start_http_server(port)
+while True:
+    check_service()
+    time.sleep(15)
+```
+
+**2. Docker Compose** - Add to AURA's `docker-compose.yml`:
+```yaml
+your_stack_exporter:
+  build: ./exporters/your-stack-exporter
+  container_name: mon_your_stack_exporter
+  environment:
+    - EXPORTER_PORT=9XXX
+    - TARGET_HOST=host.docker.internal
+    - PROJECT_LABEL=mon
+  ports: ["9XXX:9XXX"]
+  networks: [mon_network]
+  labels: ["project=mon"]
+  restart: unless-stopped
+```
+
+**3. Prometheus Configuration** - Add to `prometheus/prometheus.yml`:
+```yaml
+- job_name: 'your-stack-name'
+  static_configs:
+    - targets: ['your_stack_exporter:9XXX']
+      labels:
+        component: 'your-component'
+        project: 'mon'
+```
+
+**4. Grafana Dashboard** (Optional) - Add JSON file to `grafana/provisioning/dashboards/`
+
+### Example Integration
+The vector-db-stack integration demonstrates this pattern:
+- Vector databases use default network and proper labels
+- `vector_db_exporter` checks ChromaDB, Qdrant, and Weaviate health
+- Metrics available immediately at startup
+- Dashboard shows comprehensive vector database monitoring
+
 ### Troubleshooting
 
 **Services not starting:**
