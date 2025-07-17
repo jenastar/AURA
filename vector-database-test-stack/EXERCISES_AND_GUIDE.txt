@@ -1,0 +1,369 @@
+# Vector Database Monitoring - Complete Guide
+
+## Overview
+
+AURA's Vector Database Monitoring provides comprehensive metrics collection and visualization for vector databases, with initial support for ChromaDB. The system is designed with flexibility in mind, allowing both demo mode for testing and real database monitoring for production use.
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Main Monitoring Stack                      │
+│  ┌─────────────┐  ┌─────────────┐  ┌───────────────────┐   │
+│  │ Prometheus  │  │  Grafana    │  │ Vector DB Exporter│   │
+│  │   (9090)    │  │   (3000)    │  │     (9205)        │   │
+│  └──────┬──────┘  └──────┬──────┘  └─────────┬─────────┘   │
+│         │                 │                    │              │
+│         └─────────────────┴────────────────────┘              │
+│                           │                                   │
+└───────────────────────────┼───────────────────────────────────┘
+                            │ (optional connection)
+┌───────────────────────────┼───────────────────────────────────┐
+│              Vector Database Test Stack                        │
+│         ┌─────────────┐         ┌──────────────────┐         │
+│         │  ChromaDB   │         │ Test Applications│         │
+│         │   (8001)    │◄────────┤  (continuous ops)│         │
+│         └─────────────┘         └──────────────────┘         │
+└────────────────────────────────────────────────────────────────┘
+```
+
+## Quick Start
+
+### Option 1: Demo Mode (Recommended for Learning)
+
+```bash
+# Start main monitoring stack with demo metrics
+cd /mnt/c/dev/aura
+docker compose up -d
+
+# Access Grafana
+open http://localhost:3000  # admin/admin
+# Navigate to Dashboards → Vector Database Monitoring
+```
+
+### Option 2: Real Database Monitoring
+
+```bash
+# 1. Start the test stack
+cd /mnt/c/dev/aura/vector-database-test-stack
+./manage.sh start
+
+# 2. Configure main stack for real monitoring
+cd /mnt/c/dev/aura
+export DEMO_MODE=false
+export CHROMADB_HOST=host.docker.internal
+export CHROMADB_PORT=8001
+docker compose restart vector_db_exporter
+
+# 3. Access dashboards
+open http://localhost:3000
+```
+
+## Key Metrics Collected
+
+### Operational Metrics (Counters)
+- `vector_db_embeddings_generated_total` - Total embeddings created
+- `vector_db_similarity_searches_total` - Total searches performed
+- `vector_db_insertions_total` - Total vector insertions
+- `vector_db_updates_total` - Total vector updates
+- `vector_db_deletions_total` - Total vector deletions
+
+### Performance Metrics (Histograms)
+- `vector_db_similarity_search_seconds` - Search latency distribution
+- `vector_db_insertion_seconds` - Insertion latency distribution
+- `vector_db_embedding_generation_seconds` - Embedding generation time
+
+### Resource Metrics (Gauges)
+- `vector_db_collection_size` - Number of vectors per collection
+- `vector_db_collection_dimension` - Vector dimension per collection
+- `vector_db_memory_usage_bytes` - Memory usage by database
+
+### Quality Metrics
+- `vector_db_similarity_scores` - Distribution of similarity scores
+- `vector_db_cache_hits_total` - Cache hit rate for searches
+
+## Hands-On Exercises
+
+### Exercise 1: Understanding Demo Mode Metrics
+**Goal**: Familiarize yourself with the vector database metrics and Grafana dashboards
+
+1. Ensure the monitoring stack is running in demo mode:
+   ```bash
+   cd /mnt/c/dev/aura
+   docker compose up -d vector_db_exporter
+   ```
+
+2. Access Grafana at http://localhost:3000 (admin/admin)
+
+3. Navigate to the Vector Database Monitoring dashboard
+
+4. Observe and document:
+   - Which panel shows the highest activity?
+   - What's the average embedding generation rate?
+   - How does the similarity score distribution look?
+
+5. Use Prometheus to query raw metrics:
+   ```bash
+   # See all vector DB metrics
+   curl -s http://localhost:9090/api/v1/label/__name__/values | jq -r '.data[]' | grep vector_db
+
+   # Query embedding generation rate
+   curl -s 'http://localhost:9090/api/v1/query?query=rate(vector_db_embeddings_generated_total[5m])' | jq
+   ```
+
+### Exercise 2: Switching Between Demo and Real Monitoring
+**Goal**: Learn how to toggle between demo and real database monitoring
+
+1. Start with demo mode and note the metrics:
+   ```bash
+   docker compose logs vector_db_exporter | grep "Demo mode"
+   curl -s http://localhost:9205/metrics | grep vector_db_collection_size
+   ```
+
+2. Start the test database stack:
+   ```bash
+   cd /mnt/c/dev/aura/vector-database-test-stack
+   ./manage.sh start
+   ./manage.sh status
+   ```
+
+3. Switch to real monitoring:
+   ```bash
+   cd /mnt/c/dev/aura
+   docker compose stop vector_db_exporter
+   docker compose rm -f vector_db_exporter
+   
+   # Start with real monitoring
+   DEMO_MODE=false CHROMADB_HOST=host.docker.internal CHROMADB_PORT=8001 \
+     docker compose up -d vector_db_exporter
+   ```
+
+4. Compare the metrics:
+   - How do real metrics differ from demo metrics?
+   - What collections are visible in real mode?
+
+### Exercise 3: Creating Custom Alerts
+**Goal**: Set up alerts for vector database performance issues
+
+1. Create a Prometheus alert rule:
+   ```bash
+   cat >> /mnt/c/dev/aura/prometheus/vector_db_alerts.yml << 'EOF'
+   groups:
+   - name: vector_db_alerts
+     rules:
+     - alert: HighSearchLatency
+       expr: histogram_quantile(0.95, rate(vector_db_similarity_search_seconds_bucket[5m])) > 0.5
+       for: 2m
+       labels:
+         severity: warning
+       annotations:
+         summary: "High vector search latency detected"
+         description: "95th percentile search latency is {{ $value }}s"
+     
+     - alert: LowEmbeddingRate
+       expr: rate(vector_db_embeddings_generated_total[5m]) < 1
+       for: 5m
+       labels:
+         severity: info
+       annotations:
+         summary: "Low embedding generation rate"
+         description: "Embedding rate is {{ $value }} per second"
+   EOF
+   ```
+
+2. Update Prometheus configuration to include the alerts
+
+3. Verify alerts in Prometheus UI (http://localhost:9090/alerts)
+
+### Exercise 4: Building a Custom Dashboard
+**Goal**: Create your own vector database dashboard focusing on specific metrics
+
+1. In Grafana, create a new dashboard
+
+2. Add these panels:
+   - **Embedding Operations Panel**: 
+     ```promql
+     sum(rate(vector_db_embeddings_generated_total[5m])) by (model)
+     ```
+   
+   - **Search Performance Panel**:
+     ```promql
+     histogram_quantile(0.5, rate(vector_db_similarity_search_seconds_bucket[5m]))
+     histogram_quantile(0.95, rate(vector_db_similarity_search_seconds_bucket[5m]))
+     histogram_quantile(0.99, rate(vector_db_similarity_search_seconds_bucket[5m]))
+     ```
+   
+   - **Collection Growth Panel**:
+     ```promql
+     vector_db_collection_size
+     ```
+
+3. Save your dashboard and export it as JSON
+
+### Exercise 5: Performance Testing
+**Goal**: Generate load and observe metrics behavior
+
+1. Create a simple load generator:
+   ```bash
+   cat > /tmp/vector_load_test.py << 'EOF'
+   import requests
+   import time
+   import random
+   
+   # This would normally interact with ChromaDB
+   # For this exercise, we'll just observe demo metrics changing
+   
+   print("Observing vector database metrics under simulated load...")
+   
+   for i in range(60):
+       # In real scenario, this would generate embeddings and searches
+       print(f"Iteration {i+1}/60")
+       
+       # Check current metrics
+       response = requests.get('http://localhost:9205/metrics')
+       for line in response.text.split('\n'):
+           if 'vector_db_embeddings_generated_total' in line and not line.startswith('#'):
+               print(f"  {line.strip()}")
+               break
+       
+       time.sleep(1)
+   EOF
+   
+   python3 /tmp/vector_load_test.py
+   ```
+
+2. While the test runs, observe in Grafana:
+   - How do the rate metrics change?
+   - Are there any performance bottlenecks?
+   - What's the impact on resource usage?
+
+### Exercise 6: Troubleshooting Common Issues
+**Goal**: Learn to diagnose and fix common monitoring problems
+
+1. **Scenario: No data in dashboards**
+   ```bash
+   # Check if exporter is running
+   docker compose ps | grep vector_db
+   
+   # Check exporter logs
+   docker compose logs vector_db_exporter
+   
+   # Verify metrics endpoint
+   curl -s http://localhost:9205/metrics | grep -c vector_db
+   
+   # Check Prometheus target
+   curl -s http://localhost:9090/api/v1/targets | grep -A5 vector-database
+   ```
+
+2. **Scenario: High memory usage**
+   - Check which collections are largest
+   - Identify if specific operations cause spikes
+   - Correlate with application logs
+
+3. **Scenario: Slow similarity searches**
+   - Use the histogram metrics to identify percentiles
+   - Check collection sizes
+   - Analyze query patterns
+
+## Advanced Configuration
+
+### Custom Metric Labels
+Add custom labels to track different use cases:
+```yaml
+environment:
+  - CUSTOM_LABELS=environment=production,team=ml-ops,region=us-east
+```
+
+### Metric Filtering
+Control which metrics are exposed:
+```yaml
+environment:
+  - ENABLE_HISTOGRAMS=true
+  - ENABLE_CACHE_METRICS=false
+  - METRIC_PREFIX=my_vector_db
+```
+
+### Integration with Existing Monitoring
+The vector database exporter follows Prometheus best practices:
+- All metrics have consistent naming
+- Labels follow standard conventions
+- Metrics are documented with HELP text
+- Compatible with standard Prometheus operators
+
+## Troubleshooting Guide
+
+### Issue: Container won't start
+```bash
+# Check for port conflicts
+netstat -tulpn | grep 9205
+
+# Verify Docker network
+docker network ls
+docker network inspect aura_mon_network
+```
+
+### Issue: No metrics collected
+```bash
+# Test direct connection to database
+curl http://localhost:8001/api/v1/heartbeat
+
+# Check exporter configuration
+docker inspect mon_vector_db_exporter | grep -A20 Env
+```
+
+### Issue: Prometheus not scraping
+```bash
+# Verify Prometheus configuration
+docker exec mon_prometheus cat /etc/prometheus/prometheus.yml | grep -A10 vector
+
+# Check Prometheus targets
+curl http://localhost:9090/api/v1/targets | jq '.data.activeTargets[] | select(.labels.job=="vector-database")'
+```
+
+## Best Practices
+
+1. **Use Demo Mode for Development**
+   - Predictable metrics for testing dashboards
+   - No external dependencies
+   - Consistent data for screenshots/documentation
+
+2. **Monitor Key Business Metrics**
+   - Embedding generation rate (cost indicator)
+   - Search latency (user experience)
+   - Collection growth (capacity planning)
+
+3. **Set Appropriate Alerts**
+   - High search latency (> 500ms p95)
+   - Low cache hit rate (< 80%)
+   - Rapid collection growth (> 1000/min)
+
+4. **Regular Maintenance**
+   - Review and optimize slow queries
+   - Monitor collection sizes
+   - Archive old embeddings
+
+## Next Steps
+
+1. **Extend to Other Vector Databases**
+   - Pinecone integration
+   - Weaviate support
+   - Qdrant metrics
+
+2. **Add Business Logic Metrics**
+   - Cost per embedding
+   - Search relevance scores
+   - User satisfaction metrics
+
+3. **Build ML Model Performance Dashboard**
+   - Model version tracking
+   - Embedding quality metrics
+   - A/B test results
+
+## Getting Help
+
+- Check logs: `docker compose logs vector_db_exporter`
+- View raw metrics: http://localhost:9205/metrics
+- Prometheus targets: http://localhost:9090/targets
+- Test database API: http://localhost:8001/api/v1
+
+Remember: The vector database monitoring is designed to be extensible. Feel free to modify the exporter to add custom metrics specific to your use case!
