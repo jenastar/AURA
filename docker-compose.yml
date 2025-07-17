@@ -253,12 +253,12 @@ services:
       dockerfile: Dockerfile
     container_name: mon_vector_db_exporter
     environment:
-      - DEMO_MODE=false
+      - DEMO_MODE=${DEMO_MODE:-true}  # Set to false and configure CHROMADB_HOST for real monitoring
       - EXPORTER_PORT=9205
       - SCRAPE_INTERVAL=15
       - CONTAINER_NAME=vector-db-exporter
-      - CHROMADB_HOST=chromadb
-      - CHROMADB_PORT=${CHROMADB_PORT:-8000}
+      - CHROMADB_HOST=${CHROMADB_HOST:-localhost}
+      - CHROMADB_PORT=${CHROMADB_PORT:-8001}
       - PROJECT_LABEL=mon
     ports:
       - "9205:9205"
@@ -267,25 +267,7 @@ services:
     labels:
       - "project=mon"
     restart: unless-stopped
-    depends_on:
-      - chromadb
 
-  chromadb:
-    image: chromadb/chroma:0.4.15
-    container_name: mon_chromadb
-    ports:
-      - "8000:8000"
-    environment:
-      - IS_PERSISTENT=TRUE
-      - PERSIST_DIRECTORY=/chroma/chroma
-      - ANONYMIZED_TELEMETRY=FALSE
-    volumes:
-      - chromadb_data:/chroma/chroma
-    networks:
-      - mon_network
-    labels:
-      - "project=mon"
-    restart: unless-stopped
 
 
 networks:
@@ -302,8 +284,5 @@ volumes:
     labels:
       - "project=mon"
   custom_metrics_data:
-    labels:
-      - "project=mon"
-  chromadb_data:
     labels:
       - "project=mon"

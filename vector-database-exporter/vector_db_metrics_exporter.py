@@ -541,6 +541,7 @@ def create_demo_data():
     
     # Create dummy tracker
     tracker = VectorDatabaseMetricsTracker("demo")
+    tracker.project_label = os.environ.get('PROJECT_LABEL', 'mon')
     
     # Simulate some operations
     collections = ["documents", "images", "audio"]
@@ -617,6 +618,7 @@ def main():
             time.sleep(scrape_interval)
             # Generate a few more operations each cycle
             tracker = VectorDatabaseMetricsTracker("demo")
+            tracker.project_label = os.environ.get('PROJECT_LABEL', 'mon')
             collections = ["documents", "images", "audio"]
             
             for _ in range(5):  # Generate 5 operations per cycle

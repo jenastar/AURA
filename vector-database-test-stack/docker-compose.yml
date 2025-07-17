@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  # ChromaDB instance for testing vector database operations
+  chromadb:
+    image: chromadb/chroma:0.4.15
+    container_name: test_chromadb
+    ports:
+      - "8001:8000"  # Using 8001 to avoid conflict with main stack
+    environment:
+      - IS_PERSISTENT=TRUE
+      - PERSIST_DIRECTORY=/chroma/chroma
+      - ANONYMIZED_TELEMETRY=FALSE
+    volumes:
+      - chromadb_test_data:/chroma/chroma
+    networks:
+      - vector_test_network
+    labels:
+      - "project=vector-test"
+    restart: unless-stopped
+
+  # Test application that generates continuous vector operations
+  vector_test_app:
+    build:
+      context: ../vector-database-exporter
+      dockerfile: Dockerfile.simple
+    container_name: vector_test_app
+    environment:
+      - CHROMADB_HOST=chromadb
+      - CHROMADB_PORT=8000
+    networks:
+      - vector_test_network
+    depends_on:
+      - chromadb
+    labels:
+      - "project=vector-test"
+    restart: unless-stopped
+
+  # Optional: RAG test application for more complex scenarios
+  rag_test_app:
+    build:
+      context: ../vector-database-exporter
+      dockerfile: Dockerfile.test
+    container_name: rag_test_app
+    environment:
+      - CHROMADB_HOST=chromadb
+      - CHROMADB_PORT=8000
+    networks:
+      - vector_test_network
+    depends_on:
+      - chromadb
+    labels:
+      - "project=vector-test"
+    profiles:
+      - rag  # Only starts when --profile rag is used
+    restart: unless-stopped
+
+networks:
+  vector_test_network:
+    driver: bridge
+    labels:
+      - "project=vector-test"
+  # External network to connect to monitoring stack if needed
+  aura_mon_network:
+    external: true
+
+volumes:
+  chromadb_test_data:
+    labels:
+      - "project=vector-test"
