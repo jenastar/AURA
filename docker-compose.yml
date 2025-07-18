@@ -1,28 +1,22 @@
-version: '3.8'
-
 services:
-  unified_exporter:
-    build: ./unified-exporter
-    container_name: mon_unified_exporter
+  aura:
+    build: ./aura-simple
+    container_name: aura_mega
     restart: unless-stopped
     privileged: true
     environment:
-      - EXPORTER_PORT=9999
-      - COLLECTION_INTERVAL=10
-      - OLLAMA_HOST=host.docker.internal
-      - OLLAMA_PORT=11434
+      - EXPORTER_PORT=8080
+      - COLLECTION_INTERVAL=15
     ports:
-      - "9999:9999"
+      - "8080:8080"   # Web UI + Metrics + API
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
-    networks:
-      - mon_network
+      - /:/host/root:ro
     labels:
-      - "project=mon"
-      - "component=exporter"
-      - "service=unified"
+      - "project=aura"
+      - "component=mega-monitoring"
     deploy:
       resources:
         reservations:
@@ -30,158 +24,3 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
-
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: mon_prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--storage.tsdb.retention.time=30d'
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      - '--web.console.templates=/usr/share/prometheus/consoles'
-      - '--web.enable-lifecycle'
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./prometheus:/etc/prometheus
-      - prometheus_data:/prometheus
-    networks:
-      - mon_network
-    labels:
-      - "project=mon"
-      - "component=monitoring"
-      - "service=prometheus"
-    restart: unless-stopped
-
-  grafana:
-    image: grafana/grafana:latest
-    container_name: mon_grafana
-    ports:
-      - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_USERS_ALLOW_SIGN_UP=false
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning
-      - ./grafana/dashboards:/var/lib/grafana/dashboards
-    networks:
-      - mon_network
-    labels:
-      - "project=mon"
-      - "component=monitoring"
-      - "service=grafana"
-    restart: unless-stopped
-
-  # Standard exporters that complement the unified exporter
-  node_exporter:
-    image: prom/node-exporter:latest
-    container_name: mon_node_exporter
-    command:
-      - '--path.procfs=/host/proc'
-      - '--path.sysfs=/host/sys'
-      - '--path.rootfs=/rootfs'
-      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
-    ports:
-      - "9100:9100"
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
-    networks:
-      - mon_network
-    labels:
-      - "project=mon"
-      - "component=monitoring"
-      - "service=node-exporter"
-    restart: unless-stopped
-
-  dcgm-exporter:
-    image: nvcr.io/nvidia/k8s/dcgm-exporter:3.1.7-3.1.4-ubuntu20.04
-    container_name: mon_dcgm_exporter
-    ports:
-      - "9400:9400"
-    environment:
-      - DCGM_EXPORTER_NO_HOSTNAME=1
-    networks:
-      - mon_network
-    labels:
-      - "project=mon"
-      - "component=monitoring"
-      - "service=dcgm-exporter"
-    restart: unless-stopped
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
-
-  cadvisor:
-    image: gcr.io/cadvisor/cadvisor:latest
-    container_name: mon_cadvisor
-    ports:
-      - "8080:8080"
-    volumes:
-      - /:/rootfs:ro
-      - /var/run:/var/run:ro
-      - /sys:/sys:ro
-      - /var/lib/docker/:/var/lib/docker:ro
-      - /dev/disk/:/dev/disk:ro
-    privileged: true
-    devices:
-      - /dev/kmsg
-    networks:
-      - mon_network
-    labels:
-      - "project=mon"
-      - "component=monitoring"
-      - "service=cadvisor"
-    restart: unless-stopped
-
-  blackbox_exporter:
-    image: prom/blackbox-exporter:latest
-    container_name: mon_blackbox_exporter
-    ports:
-      - "9115:9115"
-    volumes:
-      - ./blackbox:/config
-    command:
-      - '--config.file=/config/config.yml'
-    networks:
-      - mon_network
-    labels:
-      - "project=mon"
-      - "component=monitoring"
-      - "service=blackbox-exporter"
-    restart: unless-stopped
-
-  process-exporter:
-    image: ncabatoff/process-exporter:latest
-    container_name: mon_process_exporter
-    ports:
-      - "9256:9256"
-    volumes:
-      - /proc:/host/proc:ro
-      - ./process-exporter:/config
-    command:
-      - '--procfs=/host/proc'
-      - '--config.path=/config/config.yml'
-    networks:
-      - mon_network
-    labels:
-      - "project=mon"
-      - "component=monitoring"
-      - "service=process-exporter"
-    restart: unless-stopped
-
-networks:
-  mon_network:
-    driver: bridge
-
-volumes:
-  prometheus_data:
-  grafana_data:
