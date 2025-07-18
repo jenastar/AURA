@@ -14,19 +14,15 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the exporter scripts
-COPY mega_exporter.py .
-COPY enhanced_dashboard.py .
+COPY simple_unified_exporter.py .
 
 # Make the script executable
-RUN chmod +x mega_exporter.py
+RUN chmod +x simple_unified_exporter.py
 
 # Default environment variables
-ENV EXPORTER_PORT=8080
+ENV EXPORTER_PORT=9999
 ENV COLLECTION_INTERVAL=15
-ENV PROMETHEUS_EMBEDDED=true
-ENV BASIC_AUTH_USER=admin
-ENV BASIC_AUTH_PASSWORD=admin
 
-EXPOSE 8080
+EXPOSE 9999
 
-CMD ["python", "mega_exporter.py"]
+CMD ["python", "simple_unified_exporter.py"]

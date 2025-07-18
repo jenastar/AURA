@@ -72,6 +72,9 @@ docker_memory_usage = Gauge('docker_container_memory_usage_bytes', 'Container me
 docker_memory_limit = Gauge('docker_container_memory_limit_bytes', 'Container memory limit in bytes', ['container_name', 'container_id', 'project'], registry=registry)
 docker_network_rx = Gauge('docker_container_network_rx_bytes', 'Container network received bytes', ['container_name', 'container_id', 'project'], registry=registry)
 docker_network_tx = Gauge('docker_container_network_tx_bytes', 'Container network transmitted bytes', ['container_name', 'container_id', 'project'], registry=registry)
+docker_block_io_read = Gauge('docker_container_block_io_read_bytes', 'Container block I/O read bytes', ['container_name', 'container_id', 'project'], registry=registry)
+docker_block_io_write = Gauge('docker_container_block_io_write_bytes', 'Container block I/O write bytes', ['container_name', 'container_id', 'project'], registry=registry)
+docker_restart_count = Gauge('docker_container_restart_count', 'Container restart count', ['container_name', 'container_id', 'project'], registry=registry)
 docker_status = Gauge('docker_container_status', 'Container status (1=running, 0=other)', ['container_name', 'container_id', 'project', 'status'], registry=registry)
 
 # GPU metrics
@@ -215,14 +218,20 @@ class AuraMegaExporter:
                         project = container.labels.get('project', 'unknown')
                         
                         # Calculate CPU percentage
-                        cpu_delta = stats['cpu_stats']['cpu_usage']['total_usage'] - stats['precpu_stats']['cpu_usage']['total_usage']
-                        system_cpu_delta = stats['cpu_stats']['system_cpu_usage'] - stats['precpu_stats']['system_cpu_usage']
-                        number_cpus = len(stats['cpu_stats']['cpu_usage'].get('percpu_usage', [])) or 1
-                        
                         cpu_percent = 0
-                        if system_cpu_delta > 0 and cpu_delta > 0:
-                            cpu_percent = (cpu_delta / system_cpu_delta) * number_cpus * 100.0
-                            docker_cpu_usage.labels(container_name=container_name, container_id=container_id, project=project).set(cpu_percent)
+                        try:
+                            cpu_delta = stats['cpu_stats']['cpu_usage']['total_usage'] - stats['precpu_stats']['cpu_usage']['total_usage']
+                            system_cpu_delta = stats['cpu_stats']['system_cpu_usage'] - stats['precpu_stats']['system_cpu_usage']
+                            percpu_usage = stats['cpu_stats']['cpu_usage'].get('percpu_usage', [])
+                            number_cpus = len(percpu_usage) if percpu_usage else 1
+                            
+                            if system_cpu_delta > 0 and cpu_delta > 0:
+                                cpu_percent = (cpu_delta / system_cpu_delta) * number_cpus * 100.0
+                        except (KeyError, TypeError, ZeroDivisionError) as e:
+                            logger.debug(f"Error calculating CPU for {container_name}: {e}")
+                            cpu_percent = 0
+                            
+                        docker_cpu_usage.labels(container_name=container_name, container_id=container_id, project=project).set(cpu_percent)
                         
                         # Memory stats
                         memory_usage = stats['memory_stats'].get('usage', 0)
@@ -231,11 +240,37 @@ class AuraMegaExporter:
                         docker_memory_limit.labels(container_name=container_name, container_id=container_id, project=project).set(memory_limit)
                         
                         # Network stats
-                        networks = stats.get('networks', {})
-                        total_rx = sum(net.get('rx_bytes', 0) for net in networks.values())
-                        total_tx = sum(net.get('tx_bytes', 0) for net in networks.values())
+                        total_rx = 0
+                        total_tx = 0
+                        try:
+                            networks = stats.get('networks', {})
+                            if networks:
+                                total_rx = sum(net.get('rx_bytes', 0) for net in networks.values() if net)
+                                total_tx = sum(net.get('tx_bytes', 0) for net in networks.values() if net)
+                        except (TypeError, AttributeError) as e:
+                            logger.debug(f"Error getting network stats for {container_name}: {e}")
+                            
                         docker_network_rx.labels(container_name=container_name, container_id=container_id, project=project).set(total_rx)
                         docker_network_tx.labels(container_name=container_name, container_id=container_id, project=project).set(total_tx)
+                        
+                        # Block I/O stats
+                        read_bytes = 0
+                        write_bytes = 0
+                        try:
+                            blkio_stats = stats.get('blkio_stats', {})
+                            io_service_bytes = blkio_stats.get('io_service_bytes_recursive', [])
+                            if io_service_bytes:
+                                read_bytes = sum(item.get('value', 0) for item in io_service_bytes if item.get('op') == 'Read')
+                                write_bytes = sum(item.get('value', 0) for item in io_service_bytes if item.get('op') == 'Write')
+                        except (TypeError, AttributeError) as e:
+                            logger.debug(f"Error getting block I/O for {container_name}: {e}")
+                            
+                        docker_block_io_read.labels(container_name=container_name, container_id=container_id, project=project).set(read_bytes)
+                        docker_block_io_write.labels(container_name=container_name, container_id=container_id, project=project).set(write_bytes)
+                        
+                        # Restart count
+                        restart_count = container.attrs.get('RestartCount', 0)
+                        docker_restart_count.labels(container_name=container_name, container_id=container_id, project=project).set(restart_count)
                         
                         # Status
                         docker_status.labels(container_name=container_name, container_id=container_id, project=project, status=container.status).set(1 if container.status == 'running' else 0)
