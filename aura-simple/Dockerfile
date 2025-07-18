@@ -13,8 +13,9 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the mega exporter script
+# Copy the exporter scripts
 COPY mega_exporter.py .
+COPY enhanced_dashboard.py .
 
 # Make the script executable
 RUN chmod +x mega_exporter.py

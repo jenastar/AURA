@@ -17,6 +17,7 @@ from prometheus_client import start_http_server, Gauge, Counter, Histogram, gene
 from prometheus_client.core import CollectorRegistry
 import pynvml
 import docker
+from enhanced_dashboard import create_enhanced_dashboard_routes, HistoricalData, update_historical_data
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -103,6 +104,9 @@ metrics_data = {
     'services': {},
     'last_update': None
 }
+
+# Global historical data store
+historical_data = HistoricalData()
 
 class AuraMegaExporter:
     def __init__(self):
@@ -418,6 +422,10 @@ class AuraMegaExporter:
             thread.join()
             
         metrics_data['last_update'] = datetime.now()
+        
+        # Update historical data
+        update_historical_data(metrics_data, historical_data)
+        
         logger.info("Metrics collection complete")
     
     def start_collection_loop(self):
@@ -432,174 +440,11 @@ class AuraMegaExporter:
                 logger.error(f"Error in collection loop: {e}")
                 time.sleep(interval)
 
-# HTML templates for web UI
-DASHBOARD_HTML = """
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AURA Monitoring Dashboard</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; }
-        .header { background: #2c3e50; color: white; padding: 20px; margin: -20px -20px 20px -20px; }
-        .header h1 { margin: 0; }
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .card h3 { margin-top: 0; color: #2c3e50; }
-        .metric { display: flex; justify-content: space-between; margin: 10px 0; }
-        .metric-label { font-weight: bold; }
-        .metric-value { color: #27ae60; }
-        .status-up { color: #27ae60; }
-        .status-down { color: #e74c3c; }
-        .refresh-btn { background: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; }
-        .refresh-btn:hover { background: #2980b9; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
-        th { background-color: #f2f2f2; }
-        .gpu-card { border-left: 4px solid #e67e22; }
-        .docker-card { border-left: 4px solid #3498db; }
-        .system-card { border-left: 4px solid #27ae60; }
-        .services-card { border-left: 4px solid #9b59b6; }
-    </style>
-    <script>
-        function refreshData() {
-            location.reload();
-        }
-        
-        function formatBytes(bytes) {
-            if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-        }
-        
-        // Auto-refresh every 30 seconds
-        setInterval(refreshData, 30000);
-    </script>
-</head>
-<body>
-    <div class="header">
-        <h1>🚀 AURA Monitoring Dashboard</h1>
-        <p>Single-container monitoring solution with GPU inference detection</p>
-        <button class="refresh-btn" onclick="refreshData()">🔄 Refresh</button>
-        <span style="float: right;">Last Update: {{ last_update or 'Never' }}</span>
-    </div>
-    
-    <div class="stats-grid">
-        <!-- System Metrics -->
-        <div class="card system-card">
-            <h3>💻 System Metrics</h3>
-            {% if system %}
-            <div class="metric">
-                <span class="metric-label">CPU Usage:</span>
-                <span class="metric-value">{{ "%.1f"|format(system.cpu_percent) }}%</span>
-            </div>
-            <div class="metric">
-                <span class="metric-label">Memory Used:</span>
-                <span class="metric-value">{{ "%.1f"|format(system.memory.percent) }}% ({{ (system.memory.used / 1024**3)|round(1) }} GB / {{ (system.memory.total / 1024**3)|round(1) }} GB)</span>
-            </div>
-            <div class="metric">
-                <span class="metric-label">Load Average:</span>
-                <span class="metric-value">{{ "%.2f"|format(system.load['1m']) }} {{ "%.2f"|format(system.load['5m']) }} {{ "%.2f"|format(system.load['15m']) }}</span>
-            </div>
-            <div class="metric">
-                <span class="metric-label">Uptime:</span>
-                <span class="metric-value">{{ (system.uptime / 3600)|round(1) }} hours</span>
-            </div>
-            {% else %}
-            <p>No system data available</p>
-            {% endif %}
-        </div>
-        
-        <!-- GPU Metrics -->
-        <div class="card gpu-card">
-            <h3>🎮 GPU Metrics</h3>
-            {% if gpu %}
-            {% for g in gpu %}
-            <div style="border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px;">
-                <strong>GPU {{ g.index }}</strong>
-                <div class="metric">
-                    <span class="metric-label">Memory:</span>
-                    <span class="metric-value">{{ (g.memory_used / 1024**3)|round(1) }} GB / {{ (g.memory_total / 1024**3)|round(1) }} GB</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">Utilization:</span>
-                    <span class="metric-value">{{ g.utilization }}%</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">Temperature:</span>
-                    <span class="metric-value">{{ g.temperature }}°C</span>
-                </div>
-                {% if g.inference_active %}
-                <div class="metric">
-                    <span class="metric-label">🔍 Inference Detected:</span>
-                    <span class="status-up">Active ({{ (g.memory_unknown / 1024**3)|round(1) }} GB)</span>
-                </div>
-                {% endif %}
-            </div>
-            {% endfor %}
-            {% else %}
-            <p>No GPU available or data unavailable</p>
-            {% endif %}
-        </div>
-        
-        <!-- Docker Containers -->
-        <div class="card docker-card">
-            <h3>🐳 Docker Containers</h3>
-            {% if docker %}
-            <table>
-                <tr><th>Name</th><th>Status</th><th>CPU</th><th>Memory</th></tr>
-                {% for c in docker %}
-                <tr>
-                    <td>{{ c.name }}</td>
-                    <td class="{% if c.status == 'running' %}status-up{% else %}status-down{% endif %}">{{ c.status }}</td>
-                    <td>{{ "%.1f"|format(c.cpu_percent) }}%</td>
-                    <td>{{ (c.memory_usage / 1024**2)|round(0)|int }} MB</td>
-                </tr>
-                {% endfor %}
-            </table>
-            {% else %}
-            <p>No containers running or Docker unavailable</p>
-            {% endif %}
-        </div>
-        
-        <!-- Services Health -->
-        <div class="card services-card">
-            <h3>🔗 External Services</h3>
-            {% if services %}
-            {% for s in services %}
-            <div class="metric">
-                <span class="metric-label">{{ s.name }}:</span>
-                <span class="{% if s.status == 'up' %}status-up{% else %}status-down{% endif %}">
-                    {{ s.status.upper() }}
-                    {% if s.response_time %}({{ (s.response_time * 1000)|round(0)|int }}ms){% endif %}
-                </span>
-            </div>
-            {% endfor %}
-            {% else %}
-            <p>No external services configured</p>
-            {% endif %}
-        </div>
-    </div>
-</body>
-</html>
-"""
-
 # Global exporter instance
 exporter = AuraMegaExporter()
 
-# Flask routes
-@app.route('/')
-def dashboard():
-    """Main dashboard"""
-    return render_template_string(DASHBOARD_HTML, 
-                                system=metrics_data.get('system'),
-                                docker=metrics_data.get('docker'),
-                                gpu=metrics_data.get('gpu'),
-                                services=metrics_data.get('services'),
-                                last_update=metrics_data.get('last_update'))
+# Create enhanced dashboard routes
+create_enhanced_dashboard_routes(app, metrics_data, historical_data)
 
 @app.route('/metrics')
 def metrics():
