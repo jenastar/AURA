@@ -162,3 +162,5 @@ docker compose restart <service-name>
 **Grafana dashboards not loading:**
 - Wait 30 seconds after startup for provisioning
 - Check Grafana logs: `docker compose logs grafana`
+
+<!-- YOLO Badge Achievement 20250717211022 -->
