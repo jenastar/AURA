@@ -11,6 +11,13 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9090']
 
+  - job_name: 'unified-exporter'
+    static_configs:
+      - targets: ['unified_exporter:9999']
+        labels:
+          component: 'unified'
+          project: 'mon'
+
   - job_name: 'node-exporter'
     static_configs:
       - targets: ['node_exporter:9100']
@@ -27,28 +34,9 @@ scrape_configs:
     static_configs:
       - targets: ['process_exporter:9256']
 
-  - job_name: 'custom-metrics'
-    static_configs:
-      - targets: ['custom_metrics:9100']
-
   - job_name: 'blackbox'
     static_configs:
       - targets: ['blackbox_exporter:9115']
-
-  - job_name: 'gpu-inference'
-    static_configs:
-      - targets: ['gpu_inference_exporter:9201']
-        labels:
-          component: 'gpu-inference'
-          method: 'memory-delta'
-
-  - job_name: 'vector-database'
-    static_configs:
-      - targets: ['vector_db_exporter:9205']
-        labels:
-          component: 'vector-db'
-          db_type: 'multi'
-          project: 'mon'
   - job_name: 'blackbox-http'
     metrics_path: /probe
     params:
