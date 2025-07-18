@@ -1,78 +1,123 @@
 services:
+  # Unified exporter - consolidates all custom metrics
+  unified_exporter:
+    build: ./aura-simple
+    container_name: mon_unified_exporter
+    restart: unless-stopped
+    privileged: true
+    environment:
+      - EXPORTER_PORT=9999
+      - COLLECTION_INTERVAL=15
+    ports:
+      - "9999:9999"   # Unified metrics endpoint
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host/root:ro
+    networks:
+      - mon_network
+    labels:
+      - "project=mon"
+      - "component=exporter"
+      - "service=unified"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  # Prometheus - time series database
   prometheus:
     image: prom/prometheus:latest
     container_name: mon_prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
     ports:
       - "9090:9090"
     volumes:
       - ./prometheus:/etc/prometheus
       - prometheus_data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--storage.tsdb.retention.time=200h'
-      - '--web.enable-lifecycle'
     networks:
       - mon_network
     labels:
       - "project=mon"
+      - "component=monitoring"
+      - "service=prometheus"
     restart: unless-stopped
 
+  # Grafana - dashboards and visualization
   grafana:
     image: grafana/grafana:latest
     container_name: mon_grafana
     ports:
       - "3000:3000"
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
     networks:
       - mon_network
     labels:
       - "project=mon"
+      - "component=monitoring"
+      - "service=grafana"
     restart: unless-stopped
 
-  dcgm_exporter:
-    image: nvcr.io/nvidia/k8s/dcgm-exporter:3.1.8-3.1.5-ubuntu20.04
-    container_name: mon_dcgm_exporter
-    ports:
-      - "9400:9400"
-    cap_add:
-      - SYS_ADMIN
-    runtime: nvidia
-    environment:
-      - NVIDIA_VISIBLE_DEVICES=all
-    networks:
-      - mon_network
-    labels:
-      - "project=mon"
-    restart: unless-stopped
-
+  # Standard exporters that complement the unified exporter
   node_exporter:
     image: prom/node-exporter:latest
     container_name: mon_node_exporter
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
     ports:
       - "9100:9100"
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /:/rootfs:ro
-    command:
-      - '--path.procfs=/host/proc'
-      - '--path.rootfs=/rootfs'
-      - '--path.sysfs=/host/sys'
-      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
     networks:
       - mon_network
     labels:
       - "project=mon"
+      - "component=monitoring"
+      - "service=node-exporter"
     restart: unless-stopped
+
+  dcgm_exporter:
+    image: nvcr.io/nvidia/k8s/dcgm-exporter:3.1.7-3.1.4-ubuntu20.04
+    container_name: mon_dcgm_exporter
+    ports:
+      - "9400:9400"
+    environment:
+      - DCGM_EXPORTER_NO_HOSTNAME=1
+    networks:
+      - mon_network
+    labels:
+      - "project=mon"
+      - "component=monitoring"
+      - "service=dcgm-exporter"
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
@@ -81,19 +126,19 @@ services:
       - "8080:8080"
     volumes:
       - /:/rootfs:ro
-      - /var/run:/var/run:rw
+      - /var/run:/var/run:ro
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
     privileged: true
     devices:
-      - /dev/kmsg:/dev/kmsg
-    command:
-      - '--logtostderr'
+      - /dev/kmsg
     networks:
       - mon_network
     labels:
       - "project=mon"
+      - "component=monitoring"
+      - "service=cadvisor"
     restart: unless-stopped
 
   blackbox_exporter:
@@ -101,12 +146,12 @@ services:
     container_name: mon_blackbox_exporter
     ports:
       - "9115:9115"
-    volumes:
-      - ./blackbox:/etc/blackbox_exporter
     networks:
       - mon_network
     labels:
       - "project=mon"
+      - "component=monitoring"
+      - "service=blackbox-exporter"
     restart: unless-stopped
 
   process_exporter:
@@ -116,112 +161,22 @@ services:
       - "9256:9256"
     volumes:
       - /proc:/host/proc:ro
-      - ./process-exporter:/etc/process-exporter
+      - ./process-exporter.yml:/config/process-exporter.yml:ro
     command:
       - '--procfs=/host/proc'
-      - '--config.path=/etc/process-exporter/config.yml'
-    privileged: true
+      - '--config.path=/config/process-exporter.yml'
     networks:
       - mon_network
     labels:
       - "project=mon"
+      - "component=monitoring"
+      - "service=process-exporter"
     restart: unless-stopped
-
-  custom_metrics:
-    image: prom/node-exporter:latest
-    container_name: mon_custom_metrics
-    ports:
-      - "9101:9100"
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
-      - custom_metrics_data:/etc/custom-metrics
-    command:
-      - '--path.procfs=/host/proc'
-      - '--path.rootfs=/rootfs'
-      - '--path.sysfs=/host/sys'
-      - '--collector.textfile.directory=/etc/custom-metrics'
-    networks:
-      - mon_network
-    labels:
-      - "project=mon"
-    restart: unless-stopped
-    depends_on:
-      - custom_metrics_runner
-
-  custom_metrics_runner:
-    build: ./custom-metrics
-    container_name: mon_custom_metrics_runner
-    runtime: nvidia
-    environment:
-      - NVIDIA_VISIBLE_DEVICES=all
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - custom_metrics_data:/etc/custom-metrics
-    networks:
-      - mon_network
-    labels:
-      - "project=mon"
-    restart: unless-stopped
-
-  gpu_inference_exporter:
-    build:
-      context: ./gpu-inference-exporter
-      dockerfile: Dockerfile
-    container_name: mon_gpu_inference_exporter
-    runtime: nvidia
-    environment:
-      - NVIDIA_VISIBLE_DEVICES=all
-      - EXPORTER_PORT=9201
-      - SCRAPE_INTERVAL=10
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /proc:/host/proc:ro
-    ports:
-      - "9201:9201"
-    networks:
-      - mon_network
-    labels:
-      - "project=mon"
-    privileged: true
-    pid: host
-    restart: unless-stopped
-
-  vector_db_exporter:
-    build:
-      context: ./vector-database-exporter
-      dockerfile: Dockerfile
-    container_name: mon_vector_db_exporter
-    environment:
-      - EXPORTER_PORT=9205
-      - SCRAPE_INTERVAL=15
-      - CONTAINER_NAME=vector-db-exporter
-      - CHROMADB_HOST=host.docker.internal
-      - CHROMADB_PORT=8000
-      - PROJECT_LABEL=mon
-    ports:
-      - "9205:9205"
-    networks:
-      - mon_network
-    labels:
-      - "project=mon"
-    restart: unless-stopped
-
 
 networks:
   mon_network:
     driver: bridge
-    labels:
-      - "project=mon"
 
 volumes:
   prometheus_data:
-    labels:
-      - "project=mon"
   grafana_data:
-    labels:
-      - "project=mon"
-  custom_metrics_data:
-    labels:
-      - "project=mon"

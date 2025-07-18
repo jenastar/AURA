@@ -1,0 +1,32 @@
+process_names:
+  - name: "{{.Comm}}"
+    cmdline:
+    - '.+'
+
+  - name: docker
+    cmdline:
+    - 'docker|dockerd|containerd'
+
+  - name: python
+    cmdline:
+    - 'python'
+
+  - name: prometheus
+    cmdline:
+    - 'prometheus'
+
+  - name: grafana
+    cmdline:
+    - 'grafana'
+
+  - name: gpu_processes
+    cmdline:
+    - 'nvidia-smi|dcgm|cuda'
+
+  - name: exporter_processes
+    cmdline:
+    - 'exporter|node_exporter|cadvisor'
+
+  - name: system_processes
+    cmdline:
+    - 'systemd|init|kernel'
